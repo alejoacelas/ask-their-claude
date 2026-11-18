@@ -1,29 +1,17 @@
 # Ask their Claude
 
-A skill for asking a question of a colleague's AI assistant. It interviews you
-briefly and writes a prompt. Your colleague pastes the prompt into their own Claude
-or ChatGPT. Their assistant answers from what it can reach (chats, email,
-calendar, documents, files), writes a short report, and hands it to them to check
-before they send it back to you.
+Shared instructions for asking a question of a colleague's AI assistant. The colleague pastes a prompt into their own Claude or ChatGPT. Their assistant answers from what it can reach (chats, email, calendar, documents, files), writes a report, and hands it to them to check before they send it back.
 
-## Use the skill
+Each prompt holds only what's specific to its question. It links here for everything that repeats across prompts:
 
-Copy `skill/ask-their-claude/` into your skills folder, for example
-`~/.claude/skills/ask-their-claude/` for Claude Code. Then say "ask their Claude"
-and give your question.
+- [SOURCES.md](SOURCES.md): where the assistant looks, and that it only reads.
+- [REPORT.md](REPORT.md): how it writes the report.
+- [PRIVACY.md](PRIVACY.md): what the report shares and leaves out.
+- [SAVE.md](SAVE.md): how it saves the report and hands it over.
 
-- `SKILL.md`: how the skill interviews you, recasts your question into something
-  an assistant answers reliably, and writes the prompt.
-- `privacy.md`: the default rules for what a report shares and leaves out.
+For whoever writes the prompt:
 
-## Example: a work map
+- [QUESTIONS.md](QUESTIONS.md): how to turn a question into one an assistant answers well. Ask for raw material (quotes, lists, counts, timelines), not for judgement.
+- [TEMPLATE.md](TEMPLATE.md): the prompt to fill in.
 
-`work-map/prompts/` holds a prompt the skill helped write. It asks a colleague's
-assistant to map their main work over six weeks and show where AI fits in it.
-There are two versions. `v6-confirm` asks the colleague to confirm the list of
-responsibilities once. `v6-noask` asks nothing.
-
-`work-map/results/` holds six reports, three per version. Each run went through
-Claude Code with only my own Claude Code session history to read: no calendar,
-email or other connectors. Other people's names and client and employer details
-have been replaced with roles or removed. Everything else is as the runs wrote it.
+The same files are in [a Google Doc](https://docs.google.com/document/d/1Wy-mFv1J0J56rziT3QBcxoM7EaI00JX21bEwUhBOlbc/edit), one tab each, for anyone who can't open GitHub. Tags (`v4`, `v5`, …) mark tested versions, and prompts link to the version they were tested with.
