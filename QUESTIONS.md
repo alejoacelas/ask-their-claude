@@ -54,6 +54,6 @@ Fill in [TEMPLATE.md](TEMPLATE.md). It links the colleague's assistant to the sh
 - `{sections}`: the report's structure as a bullet list: what the opening and note cover, an overview table, a section per item with its excerpts. Section labels are in the third person ("In their words").
 - `{length}`: about 1,500 to 2,500 words by default; about 600 to 900 for a narrow lookup.
 - `{sharing}`: lines for this question on top of PRIVACY, such as who may be named. Agree them with the asker, and say plainly when the question needs other people named.
-- `{base}` and `{doc}`: the guides' address for this version and the Google Doc that mirrors them.
+- `{base}`, `{doc}` and `{doc_edit}`: the guides' address for this version, the Google Doc that mirrors them as a plain page the assistant can read, and the same Doc's normal link for the person to copy from.
 
 Give the asker the prompt in one copyable block, plus a short message to the colleague in plain sentences: what it reads, that it only reads, that they check the report before sharing it, and roughly how long it takes.

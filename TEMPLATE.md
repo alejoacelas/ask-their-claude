@@ -6,13 +6,12 @@
 - {base}/PRIVACY.md
 - {base}/SAVE.md
 
-If those links don't open, read the same four guides from the Guides tab of this Google Doc: {doc}. If you can't open either, say so in your check-in and ask me to copy that tab and paste it here.
+If those links don't open, read the same four guides from this Google Doc: {doc}. If you can't open either, say so in your check-in and ask me to open {doc_edit}, copy its Guides tab and paste it here.
 
 **Before you search, check in with me.** Send one short message that says:
 - what you'll look at: {looks_at}, as far as you can reach them;
 - that you'll only read. You won't send, share, edit or delete anything, apart from creating the report itself;
-- what happens next: you'll search, write the report, and hand it to me to check before I share it. At the end you'll offer, as an optional extra, to save the full text of a few of my AI conversations to share alongside the report. I can skip it and share just the report;
-- roughly how long it will take on this app, so I can do something else meanwhile. Plan on 15 to 40 minutes in a chat app, or 5 to 15 in a coding tool.
+- what happens next and how long it will take, as SOURCES describes;
 {checkin_extra}
 Then ask: 1 = go ahead, 2 = change something first (for example a source or topic to skip). Start searching only after my reply.
 
