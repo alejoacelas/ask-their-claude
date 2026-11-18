@@ -6,7 +6,7 @@
 - {base}/PRIVACY.md
 - {base}/SAVE.md
 
-If you can't open them, say so in your check-in and I'll paste them in from {doc}.
+If those links don't open, read the same four guides from the Guides tab of this Google Doc: {doc}. If you can't open either, say so in your check-in and ask me to copy that tab and paste it here.
 
 **Before you search, check in with me.** Send one short message that says:
 - what you'll look at: {looks_at}, as far as you can reach them;

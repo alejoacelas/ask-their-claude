@@ -14,4 +14,4 @@ For whoever writes the prompt:
 - [QUESTIONS.md](QUESTIONS.md): how to turn a question into one an assistant answers well. Ask for raw material (quotes, lists, counts, timelines), not for judgement.
 - [TEMPLATE.md](TEMPLATE.md): the prompt to fill in.
 
-The same files are in [a Google Doc](https://docs.google.com/document/d/1Wy-mFv1J0J56rziT3QBcxoM7EaI00JX21bEwUhBOlbc/edit), one tab each, for anyone who can't open GitHub. Tags (`v4`, `v5`, …) mark tested versions, and prompts link to the version they were tested with.
+The same text is in [a Google Doc](https://docs.google.com/document/d/1Wy-mFv1J0J56rziT3QBcxoM7EaI00JX21bEwUhBOlbc/edit) for assistants that can't open GitHub. Its Guides tab holds the four guides in one place, so a person can paste them in one copy; its second tab holds QUESTIONS and TEMPLATE. Tags (`v4`, `v5`, …) mark tested versions, and prompts link to the version they were tested with.
