@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What the writing rules change</title>
+<!--
+RESULTS PAGE FOR A WRITING-RULES EXPERIMENT
+
+To fill this page, replace the text /*DATA*/null near the bottom with one JSON object (write "<\/" for every "</"
+inside it). Change nothing else. The object:
+
+{
+  "meta": {
+    "title": "What Sam's writing rules change",
+    "how":   "One or two sentences: where the requests came from, how each was answered again, how many runs per setup, which model.",
+    "mock":  "",                      // leave empty; a non-empty string shows as a banner beside the title
+    "notes": ["One line each: how the rules were taken out, what the reruns could and couldn't do, what was left off this page and why, counts."]
+  },
+  "parts": [                           // the parts the rules were split into, in any order
+    {"id": "p1", "name": "House style", "where": "~/.claude/skills/house-style/SKILL.md", "text": "the part's text, or a description if it can't be shared"}
+  ],
+  "requests": [
+    {
+      "id": "r1",
+      "title": "Email to fellows: deadline moved",        // 3 to 8 words
+      "kind": "Email to fellows",                         // kind of writing; a handful of kinds across the page
+      "date": "2026-11-12",
+      "request": "The request as the reader may see it.",
+      "before": "One or two lines on the session before this request: how long it was and what it covered.",
+      "original": "The reply given at the time, or \"\".",
+      "without": ["draft from run 1 without the rules", "run 2", "run 3"],
+      "with":    ["draft from run 1 with all the rules", "run 2", "run 3"],
+      "all": COMPARISON,                                  // without the rules vs with all the rules
+      "parts": {                                          // only the parts tested on this request
+        "p1": {"removed": ["draft from run 1 with all the rules except this part", "run 2", "run 3"],
+               "size": 5, "summary": "...", "changes": [CHANGE, ...]}
+      }
+    }
+  ]
+}
+
+COMPARISON = {"size": 0-10, "summary": "one sentence naming the changes that held", "changes": [CHANGE, ...]}
+CHANGE     = {"what": "at most 14 words, written as what the rules do",
+              "kind": "kind of change; a handful of kinds across the page",
+              "runs_without": 0,                          // in how many left-column runs the behaviour shows
+              "runs_with": 3,                             // in how many right-column runs it shows
+              "without": ["quote from run 1 of the left column, or \"\"", "run 2", "run 3"],
+              "with":    ["quote from run 1 of the right column, or \"\"", "run 2", "run 3"]}
+
+A change "showed in every run" when it is in all the runs on one side and none on the other; the page works that out
+from the two counts. "size" counts only those changes: 0 = none, 10 = a different piece. For a part, the left column is the
+drafts with that part removed. Quotes are copied character for character from the draft of that run, without
+Markdown symbols; the page highlights them, so a quote that isn't exact is silently not highlighted.
+-->
+<style>
+:root{--bg:#fbfaf8;--panel:#fff;--ink:#1f1d1a;--soft:#6b665e;--line:#e4e0d8;--accent:#b4541f;--tint:#fbe3cf;--hot:#f2b27f;--sel:#f6efe6}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;flex-direction:column}
+kbd{font:11.5px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--bg);color:var(--soft)}
+button{font:inherit;color:var(--ink);cursor:pointer}
+header{padding:8px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:relative}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+h1{font-size:17px;margin:0}
+.mock{background:var(--tint);color:#7a3510;border-radius:4px;padding:1px 8px;font-size:12.5px;font-weight:500}
+.mock:empty{display:none}
+.tabs{display:flex;gap:4px;margin-left:auto}
+.tab{border:1px solid var(--line);background:var(--bg);padding:3px 10px;border-radius:6px;font-size:14px}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tab.on kbd{background:transparent;color:#ddd;border-color:#666}
+.plain{font-size:13px;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 9px}
+.how{color:var(--soft);font-size:13px;margin:2px 0 0}
+#copyst{font-size:12.5px;color:var(--soft)}
+#copyout{display:none;width:100%;height:80px;margin-top:8px;font:12px ui-monospace,Menlo,monospace}
+.pop{display:none;position:absolute;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 28px rgba(40,30,20,.16);padding:12px 14px;font-size:14px}
+#howpop{right:20px;top:100%;width:620px;max-height:60vh;overflow:auto}
+#howpop.open{display:block}
+#howpop h4{margin:10px 0 2px;font-size:13px;color:var(--soft);font-weight:600}
+#howpop ul{margin:0;padding-left:18px}
+#howpop .where{color:var(--soft);font-size:12.5px}
+main{flex:1;display:flex;min-height:0}
+aside{width:300px;flex:none;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.filters{padding:8px 12px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--soft)}
+.filters .row{margin-bottom:4px}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:12px;padding:0 8px;margin:2px 3px 2px 0;background:var(--bg);font-size:12.5px;line-height:1.65}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.filters label{cursor:pointer;color:var(--ink)}
+.lhead{padding:8px 12px 4px;font-size:11.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+#list{overflow:auto;flex:1}
+.item{padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer;border-left:3px solid transparent}
+.item.sel{background:var(--sel);border-left-color:var(--accent)}
+.item.open{border-left-color:var(--accent)}
+.item.sub{padding-left:26px}
+.item .t{font-weight:600;font-size:14px}
+.item.sub .t{font-weight:500}
+.item .m{color:var(--soft);font-size:12.5px}
+.item.dim .t,.item.dim .m{color:#a8a299;font-weight:400}
+.meter{display:inline-block;width:56px;height:6px;background:var(--line);border-radius:3px;vertical-align:middle;margin-right:6px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+.item.dim .meter{display:none}
+.empty{padding:20px 14px;color:var(--soft)}
+#detail{flex:1;min-width:0;display:flex;flex-direction:column;padding:10px 20px 8px;min-height:0}
+.dtop{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.dh{font-size:16px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.pos{color:var(--soft);font-weight:400;font-size:13px;margin-left:8px}
+.whatwrap{position:relative;flex:none}
+.pill{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:2px 11px;font-size:13px}
+.whatwrap.pinned .pill{border-color:var(--accent);color:var(--accent)}
+.whatwrap:hover #whatpop,.whatwrap.pinned #whatpop{display:block}
+#whatpop{right:0;top:100%;width:600px;max-height:62vh;overflow:auto}
+#whatpop .sum{font-weight:600;margin-bottom:6px}
+.ch{padding:2px 6px;border-radius:4px;display:flex;gap:8px}
+.ch.hot{background:var(--sel)}
+.ch.weak{color:var(--soft)}
+.ch .k{flex:none;width:118px;color:var(--soft);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;padding-top:2px}
+.ch i{font-size:12px;color:var(--soft);font-style:normal;white-space:nowrap;margin-left:6px}
+#whatpop .sec{margin-top:10px;color:var(--soft);font-size:12.5px}
+.askwrap{position:relative;margin-bottom:8px}
+.ask{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:5px 12px;font-size:14px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lab{color:var(--soft);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;margin-right:8px}
+.askwrap.open #askpop{display:block}
+#askpop{left:0;right:0;top:100%;max-height:60vh;overflow:auto}
+#askpop .full{white-space:pre-wrap;margin:2px 0 10px}
+.cols{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0}
+.col{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.col h3{margin:0;padding:7px 14px;font-size:15px;border-bottom:1px solid var(--line);font-weight:600;display:flex;align-items:baseline;gap:10px}
+.col h3 span{color:var(--soft);font-weight:400;font-size:12.5px}
+.col .body{padding:12px 14px;overflow:auto;white-space:pre-wrap;flex:1;font-size:15px;line-height:1.55}
+.d{background:var(--tint);border-radius:2px;cursor:help}
+.d.hot{background:var(--hot)}
+.cm{margin-top:8px;display:flex;gap:10px;align-items:flex-start}
+.cm textarea{flex:1;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:6px;padding:5px 10px;height:34px;resize:none;background:var(--panel);color:var(--ink)}
+.cm textarea:focus{outline:2px solid var(--accent);border-color:transparent}
+.cm .st{font-size:12.5px;color:var(--soft);width:60px;padding-top:6px}
+footer{border-top:1px solid var(--line);background:var(--panel);padding:4px 20px;font-size:12px;color:var(--soft);display:flex;gap:14px;flex-wrap:wrap}
+footer span{white-space:nowrap}
+#tip{display:none;position:fixed;z-index:30;background:var(--ink);color:#fff;border-radius:6px;padding:4px 9px;font-size:13px;max-width:360px;pointer-events:none}
+#tip small{color:#cfc9bf}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1 id="h1"></h1><span class="mock" id="mock"></span>
+    <div class="tabs">
+      <button class="tab" id="tab1" data-view="1"><kbd>1</kbd> All the rules together</button>
+      <button class="tab" id="tab2" data-view="2"><kbd>2</kbd> One part of the rules at a time</button>
+    </div>
+    <button class="plain" id="copy">Copy comments (<span id="ncm">0</span>)</button>
+    <button class="plain" id="howbtn"><kbd>H</kbd> How this was made</button>
+  </div>
+  <p class="how"><span id="how"></span> <span id="copyst"></span></p>
+  <textarea id="copyout" readonly></textarea>
+  <div class="pop" id="howpop"></div>
+</header>
+<main>
+  <aside>
+    <div class="filters">
+      <div class="row">Kind of writing: <span id="kinds"></span></div>
+      <div class="row">Kind of change: <span id="cks"></span></div>
+      <label><input type="checkbox" id="held"> Only changes that showed in every run</label>
+    </div>
+    <div class="lhead" id="lhead"></div>
+    <div id="list"></div>
+  </aside>
+  <section id="detail"></section>
+</main>
+<footer id="keys"></footer>
+<div id="tip"></div>
+<script>
+const DATA = /*DATA*/null;
+const M = DATA.meta, R = DATA.requests, P = DATA.parts;
+const S = {view:1, req:null, part:null, run:0, chance:false, orig:false, open:false, pinned:false, how:false, kind:null, ck:null, onlyHeld:true};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const reqById = id => R.find(c => c.id === id);
+const partById = id => P.find(b => b.id === id);
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+
+// ---- what is being compared ----
+const cmpOf = (c, pid) => pid ? c.parts[pid] : c.all;                        // the judged comparison
+const leftRuns = (c, pid) => pid ? c.parts[pid].removed : c.without;
+const nRuns = (c, pid) => Math.min(leftRuns(c, pid).length, c.with.length);
+const isHeld = d => (d.runs_with === d.with.length && d.runs_without === 0) || (d.runs_with === 0 && d.runs_without === d.without.length);
+const counts = (d, part) => (part ? 'with the part ' : 'with the rules ') + d.runs_with + ' of ' + d.with.length + ' runs, without ' + d.runs_without + ' of ' + d.without.length;
+const shownCh = cmp => cmp.changes.map((d, i) => ({...d, i, held: isHeld(d)})).filter(d => (d.held || !S.onlyHeld) && (!S.ck || d.kind === S.ck));
+const heldN = cmp => cmp.changes.filter(d => isHeld(d) && (!S.ck || d.kind === S.ck)).length;
+const byEffect = get => (a, b) => (heldN(get(b)) > 0) - (heldN(get(a)) > 0) || get(b).size - get(a).size || heldN(get(b)) - heldN(get(a));
+const reqsF = pid => R.filter(c => (!S.kind || c.kind === S.kind) && (!pid || (c.parts && c.parts[pid])) && (!S.ck || shownCh(cmpOf(c, pid)).length));
+const list1 = () => reqsF(null).sort(byEffect(c => c.all));
+const list2 = pid => reqsF(pid).sort(byEffect(c => c.parts[pid]));
+function partRows() {
+  return P.map(b => {
+    const rs = reqsF(b.id), k = rs.filter(c => heldN(c.parts[b.id]) > 0).length;
+    const mean = rs.length ? rs.reduce((s, c) => s + c.parts[b.id].size, 0) / rs.length : 0;
+    return {b, k, n: rs.length, mean};
+  }).filter(x => x.n).sort((x, y) => (y.k > 0) - (x.k > 0) || y.mean - x.mean || y.k - x.k);
+}
+
+// ---- share of words that differ (shown only inside "What changed") ----
+const words = s => s.replace(/\*\*/g, '').split(/\s+/).filter(Boolean);
+const memo = new Map();
+function share(a, b) {
+  const key = a + '\u0000' + b;
+  if (memo.has(key)) return memo.get(key);
+  const A = words(a), B = words(b), n = A.length, m = B.length, W = m + 1, T = new Uint16Array((n + 1) * W);
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    T[i * W + j] = A[i] === B[j] ? T[(i + 1) * W + j + 1] + 1 : Math.max(T[(i + 1) * W + j], T[i * W + j + 1]);
+  const res = n + m ? 1 - 2 * T[0] / (n + m) : 0;
+  memo.set(key, res);
+  return res;
+}
+
+// ---- a draft with the quoted passages highlighted; quotes: [{q, i}] ----
+function render(text, quotes) {
+  const n = text.length, hidden = new Uint8Array(n), bold = new Uint8Array(n), hl = new Int16Array(n).fill(-1);
+  let on = false;
+  for (let k = 0; k < n; k++) {
+    if (text[k] === '*' && text[k + 1] === '*') { hidden[k] = hidden[k + 1] = 1; on = !on; k++; continue; }
+    if (text[k] === '\n' && on && text[k + 1] === '\n') on = false;
+    bold[k] = on ? 1 : 0;
+  }
+  let plain = '', map = [];
+  for (let k = 0; k < n; k++) if (!hidden[k]) { plain += text[k]; map.push(k); }
+  for (const {q, i} of quotes) {
+    const qq = (q || '').replace(/\*\*/g, ''), at = qq ? plain.indexOf(qq) : -1;
+    if (at < 0) continue;
+    for (let k = at; k < at + qq.length; k++) hl[map[k]] = i;
+  }
+  let out = '', k = 0;
+  while (k < n) {
+    if (hidden[k]) { k++; continue; }
+    let e = k, run = '';
+    while (e < n && (hidden[e] || (bold[e] === bold[k] && hl[e] === hl[k]))) { if (!hidden[e]) run += text[e]; e++; }
+    let h = esc(run);
+    if (bold[k]) h = '<b>' + h + '</b>';
+    if (hl[k] >= 0) h = '<span class="d" data-i="' + hl[k] + '">' + h + '</span>';
+    out += h; k = e;
+  }
+  return out;
+}
+
+// ---- comments ----
+const CK = 'writing-rules-comments:' + M.title;
+let comments = (() => { try { return JSON.parse(localStorage.getItem(CK) || '{}'); } catch (e) { return {}; } })();
+const saveC = () => { try { localStorage.setItem(CK, JSON.stringify(comments)); return true; } catch (e) { return false; } };
+const ckey = () => (S.view === 1 ? 'all' : 'part:' + S.part) + '|' + S.req;
+function commentsText() {
+  return Object.keys(comments).filter(k => comments[k].trim()).map(k => {
+    const [v, rid] = k.split('|'), c = reqById(rid), b = v === 'all' ? null : partById(v.slice(5));
+    if (!c || (v !== 'all' && !b)) return '';
+    return (b ? 'Part "' + b.name + '"' : 'All the rules together') + ' / ' + c.title + ': ' + comments[k].trim();
+  }).filter(Boolean).join('\n');
+}
+const nComments = () => Object.values(comments).filter(v => v.trim()).length;
+
+// ---- drawing ----
+const meter = v => '<span class="meter"><i style="width:' + v * 10 + '%"></i></span>';
+const heldLine = cmp => { const h = heldN(cmp); return h ? plural(h, 'change') + ' in every run' : 'No change in every run'; };
+function draw() {
+  document.title = M.title;
+  $('h1').textContent = M.title; $('mock').textContent = M.mock || ''; $('how').textContent = M.how || '';
+  $('tab1').classList.toggle('on', S.view === 1); $('tab2').classList.toggle('on', S.view === 2);
+  $('held').checked = S.onlyHeld;
+  const kinds = [...new Set(R.map(c => c.kind))];
+  $('kinds').innerHTML = '<button class="chip' + (S.kind ? '' : ' on') + '" data-kind="">All</button>' +
+    kinds.map(k => '<button class="chip' + (S.kind === k ? ' on' : '') + '" data-kind="' + esc(k) + '">' + esc(k) + '</button>').join('');
+  const cks = [...new Set(R.flatMap(c => [c.all, ...Object.values(c.parts || {})].flatMap(x => x.changes.map(d => d.kind))))];
+  $('cks').innerHTML = '<button class="chip' + (S.ck ? '' : ' on') + '" data-ck="">All</button>' +
+    cks.map(t => '<button class="chip' + (S.ck === t ? ' on' : '') + '" data-ck="' + esc(t) + '">' + esc(t) + '</button>').join('');
+  $('ncm').textContent = nComments();
+  $('howpop').classList.toggle('open', S.how);
+  $('howpop').innerHTML = '<b>How this was made</b><h4>Notes</h4><ul>' + (M.notes || []).map(n => '<li>' + esc(n) + '</li>').join('') + '</ul><h4>The parts of the rules</h4><ul>' +
+    P.map(b => '<li>' + esc(b.name) + (b.where ? ' <span class="where">' + esc(b.where) + '</span>' : '') + '</li>').join('') + '</ul>';
+  S.view === 1 ? drawList1() : drawList2();
+  drawDetail();
+  drawKeys();
+}
+function drawList1() {
+  const l = list1();
+  if (!l.find(c => c.id === S.req)) S.req = l.length ? l[0].id : null;
+  S.part = S.view === 1 ? S.part : S.part;
+  $('lhead').textContent = plural(l.length, 'request') + ', biggest change first';
+  $('list').innerHTML = l.length ? l.map(c => '<div class="item' + (c.id === S.req ? ' sel' : '') + (heldN(c.all) ? '' : ' dim') + '" data-req="' + c.id + '"><div class="t">' + esc(c.title) +
+    '</div><div class="m">' + meter(c.all.size) + heldLine(c.all) + '</div></div>').join('') : '<div class="empty">No request passes these filters.</div>';
+}
+function drawList2() {
+  const rows = partRows();
+  if (!rows.find(x => x.b.id === S.part)) S.part = rows.length ? rows[0].b.id : null;
+  const rl = S.part ? list2(S.part) : [];
+  if (!rl.find(c => c.id === S.req)) S.req = rl.length ? rl[0].id : null;
+  $('lhead').textContent = plural(rows.length, 'part') + ' of the rules, biggest effect first';
+  $('list').innerHTML = rows.length ? rows.map(x => '<div class="item' + (x.b.id === S.part ? ' open' : '') + (x.k ? '' : ' dim') + '" data-part="' + x.b.id + '"><div class="t">' + esc(x.b.name) +
+    '</div><div class="m">' + meter(x.mean) + (x.k ? 'Changed ' + x.k + ' of ' + plural(x.n, 'request') : 'No change in every run, ' + plural(x.n, 'request')) + '</div></div>' +
+    (x.b.id === S.part ? rl.map(c => '<div class="item sub' + (c.id === S.req ? ' sel' : '') + (heldN(c.parts[x.b.id]) ? '' : ' dim') + '" data-req="' + c.id + '"><div class="t">' + esc(c.title) +
+      '</div><div class="m">' + heldLine(c.parts[x.b.id]) + '</div></div>').join('') : '')).join('') : '<div class="empty">No part passes these filters.</div>';
+}
+function drawDetail() {
+  const c = reqById(S.req), pid = S.view === 2 ? S.part : null;
+  if (!c || (S.view === 2 && !pid)) { $('detail').innerHTML = '<div class="empty">Nothing to show. Clear a filter.</div>'; return; }
+  const cmp = cmpOf(c, pid), b = pid ? partById(pid) : null, n = nRuns(c, pid);
+  S.run = Math.max(0, Math.min(S.run, n - 1));
+  if (!c.original) S.orig = false;
+  if (c.with.length < 2) S.chance = false;
+  const r = S.run, r2 = (r + 1) % c.with.length, L = leftRuns(c, pid), chs = shownCh(cmp);
+  const l = S.view === 1 ? list1() : list2(pid), pos = l.findIndex(x => x.id === c.id) + 1;
+  const head = b ? esc(b.name) + '<span class="pos">request ' + pos + ' of ' + l.length + ' for this part: ' + esc(c.title) + '</span>'
+                 : esc(c.title) + '<span class="pos">request ' + pos + ' of ' + l.length + (c.date ? ' · ' + esc(c.date) : '') + '</span>';
+  // "What changed": shown on hover, pinned with W
+  const wLeft = S.orig ? c.original : L[r], sh = share(S.chance ? c.with[r] : wLeft, S.chance ? c.with[r2] : c.with[r]);
+  let pop = '<div class="sum">' + esc(cmp.summary) + '</div>' +
+    (chs.length ? chs.map(d => '<div class="ch' + (d.held ? '' : ' weak') + '" data-ch="' + d.i + '"><span class="k">' + esc(d.kind) + '</span><span>' + esc(d.what) + ' <i>' + counts(d, b) + '</i></span></div>').join('')
+                : '<div class="ch weak">No change passes the filters on the left.</div>');
+  if (!b && c.parts && Object.keys(c.parts).length) {
+    const ps = Object.keys(c.parts).filter(partById).sort((x, y) => c.parts[y].size - c.parts[x].size);
+    pop += '<div class="sec">Which part of the rules does it? Size of the change when each part is taken out alone (0 to 10):<br>' +
+      ps.map(p => '<button class="chip" data-gopart="' + p + '">' + esc(partById(p).name) + ' ' + c.parts[p].size + '</button>').join('') + '</div>';
+  }
+  pop += '<div class="sec">Sizes and descriptions are an AI judge\'s reading of all the runs. Counting every word, ' + Math.round(sh * 100) + '% differ between these two drafts' +
+    (c.with.length > 1 && !S.chance ? '; two runs with nothing changed differ by ' + Math.round(share(c.with[0], c.with[1]) * 100) + '%.' : '.') + '</div>';
+  const pill = '<div class="whatwrap' + (S.pinned ? ' pinned' : '') + '" id="whatwrap"><button class="pill" id="whatbtn"><kbd>W</kbd> What changed: ' + heldLine(cmp).toLowerCase() + '</button><div class="pop" id="whatpop">' + pop + '</div></div>';
+  // the request
+  const one = c.request.replace(/\s+/g, ' ');
+  const ask = '<div class="askwrap' + (S.open ? ' open' : '') + '"><div class="ask" id="ask"><span class="lab">The request</span>' + esc(one) + '</div><div class="pop" id="askpop">' +
+    '<div class="lab">The request</div><div class="full">' + esc(c.request) + '</div>' +
+    (c.before ? '<div class="lab">The session before it</div><div class="full">' + esc(c.before) + '</div>' : '') +
+    (b ? '<div class="lab">The part of the rules taken out</div><div class="full">' + esc(b.text || '') + '</div>' : '') + '</div></div>';
+  // the two drafts
+  const q = (side, run) => chs.map(d => ({q: (d[side] || [])[run] || '', i: d.i}));
+  const runLab = k => n > 1 || c.with.length > 1 ? 'run ' + (k + 1) + ' of ' + c.with.length : '';
+  let cols;
+  if (S.chance) cols = col('L', 'With the writing rules', runLab(r) + ' · chance check', c.with[r], q('with', r)) +
+                       col('R', 'With the writing rules', runLab(r2) + ' · same setup: only chance differs', c.with[r2], q('with', r2));
+  else cols = (S.orig ? col('L', 'What Claude wrote at the time', 'with the rules as they were then', c.original, [])
+                      : col('L', b ? 'Without “' + esc(b.name) + '”' : 'Without the writing rules', (b ? 'every other rule kept · ' : '') + runLab(r), L[r], q('without', r))) +
+               col('R', b ? 'With all the writing rules' : 'With the writing rules', runLab(r), c.with[r], q('with', r));
+  const v = comments[ckey()] || '';
+  $('detail').innerHTML = '<div class="dtop"><div class="dh">' + head + '</div>' + pill + '</div>' + ask + '<div class="cols">' + cols + '</div>' +
+    '<div class="cm"><textarea id="cmt" placeholder="Comment on this comparison">' + esc(v) + '</textarea><div class="st" id="cmst">' + (v.trim() ? 'Saved' : '') + '</div></div>';
+}
+const col = (id, title, sub, text, quotes) => '<div class="col"><h3>' + title + '<span>' + esc(sub) + '</span></h3><div class="body" id="col' + id + '">' + render(text || '', quotes) + '</div></div>';
+function drawKeys() {
+  const c = reqById(S.req), k = (keys, what) => '<span>' + keys.map(x => '<kbd>' + x + '</kbd>').join('') + ' ' + what + '</span>';
+  $('keys').innerHTML = k(['↑', '↓'], 'next comparison') + (S.view === 2 ? k(['⇧', '↑', '↓'], 'next part') : '') + k(['←', '→'], 'another run of the same request') +
+    k(['W'], 'what changed') + k(['E'], 'full request') + k(['R'], 'chance check: two runs of the same setup') + (c && c.original ? k(['O'], 'what Claude wrote at the time') : '') +
+    k(['F'], 'next kind of writing') + k(['D'], 'also show changes not in every run') + k(['C'], 'comment') + k(['⌘', '↵'], 'save it') + k(['Esc'], 'close');
+}
+
+// ---- actions ----
+function setView(v) { S.view = v; S.run = 0; S.chance = S.orig = false; draw(); }
+function pick(req, part) { if (part !== undefined) S.part = part; S.req = req; S.run = 0; S.chance = S.orig = false; draw(); }
+function move(d) {
+  if (S.view === 1) { const l = list1(), i = l.findIndex(c => c.id === S.req), n = l[i + d]; if (n) pick(n.id); return; }
+  const l = list2(S.part), i = l.findIndex(c => c.id === S.req);
+  if (l[i + d]) return pick(l[i + d].id);
+  const rows = partRows(), j = rows.findIndex(x => x.b.id === S.part), nx = rows[j + d];
+  if (nx) { const nl = list2(nx.b.id); pick(nl.length ? nl[d > 0 ? 0 : nl.length - 1].id : null, nx.b.id); }
+}
+function movePart(d) {
+  const rows = partRows(), nx = rows[rows.findIndex(x => x.b.id === S.part) + d];
+  if (nx) pick(null, nx.b.id);
+}
+function cycleKind() { const ks = [null, ...new Set(R.map(c => c.kind))]; S.kind = ks[(ks.indexOf(S.kind) + 1) % ks.length]; draw(); }
+function saveComment() {
+  const t = $('cmt'); if (!t) return;
+  if (t.value.trim()) comments[ckey()] = t.value; else delete comments[ckey()];
+  const ok = saveC();
+  $('cmst').textContent = t.value.trim() ? (ok ? 'Saved' : 'Not saved') : '';
+  $('ncm').textContent = nComments();
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-view],[data-kind],[data-ck],[data-req],[data-part],[data-gopart],#ask,#copy,#howbtn,#whatbtn');
+  if (!t) { if (!e.target.closest('.pop')) { if (S.how || S.open) { S.how = S.open = false; draw(); } } return; }
+  if (t.dataset.view) setView(+t.dataset.view);
+  else if ('kind' in t.dataset) { S.kind = t.dataset.kind || null; draw(); }
+  else if ('ck' in t.dataset) { S.ck = t.dataset.ck || null; draw(); }
+  else if (t.dataset.req) pick(t.dataset.req);
+  else if (t.dataset.part) pick(null, t.dataset.part);
+  else if (t.dataset.gopart) { S.view = 2; S.pinned = false; pick(S.req, t.dataset.gopart); }
+  else if (t.id === 'ask') { S.open = !S.open; draw(); }
+  else if (t.id === 'howbtn') { S.how = !S.how; draw(); }
+  else if (t.id === 'whatbtn') { S.pinned = !S.pinned; draw(); }
+  else if (t.id === 'copy') {
+    // Shows the comments in a box, selected, and copies them. If the browser refuses, the selection is ready for Cmd+C.
+    const o = $('copyout');
+    if (o.style.display === 'block') { o.style.display = 'none'; $('copyst').textContent = ''; return; }
+    o.style.display = 'block'; o.value = commentsText() || 'No comments yet.'; o.focus(); o.select();
+    let done = false; try { done = document.execCommand('copy'); } catch (err) {}
+    $('copyst').textContent = done ? 'Copied. Click the button again to close the box.' : 'Selected: press Cmd+C. Click the button again to close the box.';
+  }
+});
+$('held').addEventListener('change', e => { S.onlyHeld = e.target.checked; draw(); });
+document.addEventListener('focusout', e => { if (e.target.id === 'cmt') saveComment(); });
+// hovering a change in the list, or a highlighted passage, marks every passage of that change
+const tip = $('tip');
+document.addEventListener('mouseover', e => {
+  const ch = e.target.closest('.ch[data-ch]'), d = e.target.closest('.d');
+  document.querySelectorAll('.hot').forEach(x => x.classList.remove('hot'));
+  tip.style.display = 'none';
+  const i = ch ? ch.dataset.ch : d ? d.dataset.i : null;
+  if (i === null) return;
+  document.querySelectorAll('.d[data-i="' + i + '"]').forEach(x => x.classList.add('hot'));
+  const row = document.querySelector('.ch[data-ch="' + i + '"]'); if (row) row.classList.add('hot');
+  if (d) {
+    const c = reqById(S.req), x = cmpOf(c, S.view === 2 ? S.part : null).changes[i], r = d.getBoundingClientRect();
+    tip.innerHTML = esc(x.what) + ' <small>' + esc(x.kind) + ' · ' + counts(x, S.view === 2) + '</small>';
+    tip.style.display = 'block';
+    tip.style.left = Math.max(8, Math.min(r.left, innerWidth - tip.offsetWidth - 8)) + 'px';
+    tip.style.top = (r.top - tip.offsetHeight - 6 < 0 ? r.bottom + 6 : r.top - tip.offsetHeight - 6) + 'px';
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.target.id === 'copyout') return;
+  if (e.target.id === 'cmt') {
+    if (e.key === 'Escape') e.target.blur();
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveComment(); e.target.blur(); }
+    return;
+  }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'arrowdown') e.shiftKey && S.view === 2 ? movePart(1) : move(1);
+  else if (k === 'arrowup') e.shiftKey && S.view === 2 ? movePart(-1) : move(-1);
+  else if (k === 'arrowright') { S.run++; draw(); }
+  else if (k === 'arrowleft') { S.run--; draw(); }
+  else if (k === '1') setView(1);
+  else if (k === '2') setView(2);
+  else if (k === 'w') { S.pinned = !S.pinned; draw(); }
+  else if (k === 'e') { S.open = !S.open; draw(); }
+  else if (k === 'r') { S.chance = !S.chance; S.orig = false; draw(); }
+  else if (k === 'o') { S.orig = !S.orig; S.chance = false; draw(); }
+  else if (k === 'f') cycleKind();
+  else if (k === 'd') { S.onlyHeld = !S.onlyHeld; draw(); }
+  else if (k === 'h') { S.how = !S.how; draw(); }
+  else if (k === 'c') { const t = $('cmt'); if (t) t.focus(); }
+  else if (k === 'escape') { S.pinned = S.open = S.how = false; draw(); }
+  else return;
+  e.preventDefault();
+});
+window.__state = S;
+draw();
+</script>
+</body>
+</html>
