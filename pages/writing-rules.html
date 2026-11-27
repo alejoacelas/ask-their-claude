@@ -60,7 +60,9 @@ other part ("removed" = those drafts). The page shows it beside the parts and dr
 part's bar, so a part can be read against what chance alone produces.
 
 How the page works: the two drafts own the page, laid out as the formatted text they are. What changed is closed on
-load and opens with W, the pill, or a click on a highlighted passage. Each control shows its key; "?" lists them all.
+load and opens with W, the pill, or a click on a highlighted passage. The reader can mark which draft they prefer
+(A left, S same, D right) and grade blind: B shuffles the sides and hides the labels and highlights until pressed again.
+Marks and comments stay in the reader's browser. Keys: arrows, A S D, B, W, C, Esc. Everything else is a click.
 -->
 <style>
 :root{
@@ -215,6 +217,18 @@ button.prow2:hover{background:var(--sel)}
 .fine{font-size:12px;color:var(--faint);margin-top:10px;line-height:1.45}
 .parttext{white-space:pre-wrap;color:var(--soft);font-size:13px;line-height:1.45}
 
+/* ---- which draft do you prefer; grading blind ---- */
+.col.pref{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.ch .tag{font:600 11.5px var(--sans);color:var(--accent);margin-left:8px;white-space:nowrap}
+.ch .top{display:flex;align-items:center;flex-wrap:wrap;max-width:100%}
+.ghost.blind{color:var(--ink);border-color:var(--accent);background:var(--tint)}
+.blindnote{font-size:13px;color:var(--soft);white-space:nowrap}
+.prefer{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--soft);white-space:nowrap}
+.prefer .seg button{padding:4px 10px;font-size:13px}
+.prefer .seg button.on{font-weight:600;color:var(--accent)}
+.prefer.off{opacity:.45}
+.item .ck{flex:none;color:var(--accent);font-weight:700;font-size:11px}
+
 /* ---- comment ---- */
 .cm{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
 .cm textarea{flex:1 1 260px;min-width:0;border:0;border-bottom:1px solid var(--line2);background:transparent;padding:5px 2px;height:32px;resize:none;font-size:14px;outline:0}
@@ -239,10 +253,6 @@ button.prow2:hover{background:var(--sel)}
 .sheet summary{cursor:pointer;font-weight:550}
 .sheet summary span{font-weight:400;color:var(--faint);font-size:12.5px;margin-left:8px}
 .sheet .prow2{grid-template-columns:minmax(0,1fr) 200px 26px;padding:5px 0}
-#keys{position:fixed;z-index:42;right:28px;top:64px;width:min(360px,calc(100vw - 24px));display:none}
-#keys.open{display:block}
-#keys div{display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13.5px}
-#keys div:last-child{border:0}
 #tip{display:none;position:fixed;z-index:30;background:var(--ink);color:var(--bg);border-radius:8px;padding:6px 10px;font-size:13px;max-width:340px;pointer-events:none;line-height:1.35}
 #tip small{display:block;opacity:.7;font-size:11.5px;margin-top:2px}
 
@@ -267,11 +277,11 @@ button.prow2:hover{background:var(--sel)}
   <h1><span id="h1"></span><span class="mock" id="mock"></span></h1>
   <div class="topright">
     <div class="seg" role="tablist" aria-label="View">
-      <button id="tab1" data-view="1" role="tab">All the rules together <kbd>1</kbd></button>
-      <button id="tab2" data-view="2" role="tab">One part at a time <kbd>2</kbd></button>
+      <button id="tab1" data-view="1" role="tab">All the rules together</button>
+      <button id="tab2" data-view="2" role="tab">One part at a time</button>
     </div>
-    <button class="ghost" id="howbtn">Summary and method <kbd>H</kbd></button>
-    <button class="ghost" id="keysbtn" aria-label="Keys">Keys <kbd>?</kbd></button>
+    <button class="ghost" id="blindbtn" aria-pressed="false" title="Shuffle which draft is on which side and hide the labels, so you can pick without knowing"><span id="blindlbl">Grade blind</span> <kbd>B</kbd></button>
+    <button class="ghost" id="howbtn">Summary and method</button>
   </div>
   <p class="how" id="how"></p>
 </header>
@@ -284,19 +294,18 @@ button.prow2:hover{background:var(--sel)}
     <div id="parts"></div>
     <div class="lhead"><span id="lhead"></span><span id="lsort"></span></div>
     <div id="list"></div>
-    <div class="hint"><span><kbd>↑</kbd> <kbd>↓</kbd> next request</span><span id="hint2"></span></div>
+    <div class="hint"><span><kbd>↑</kbd> <kbd>↓</kbd> next request</span></div>
   </aside>
   <section id="detail"></section>
 </main>
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-label="Summary and method"></div>
-<div class="pop" id="keys" role="dialog" aria-label="Keys"></div>
 <div id="tip"></div>
 <script>
 const DATA = /*DATA*/null;
 const M = DATA.meta, R = DATA.requests, P = DATA.parts;
 // src: what the left column shows. 'without' = the setup being compared, 'orig' = the reply at the time, 'chance' = another run with the rules.
-const S = {view:1, req:null, part:null, run:0, src:'without', open:false, pinned:false, how:false, keys:false, kind:null, ck:null, onlyHeld:true, focus:null};
+const S = {view:1, req:null, part:null, run:0, src:'without', open:false, pinned:false, how:false, kind:null, ck:null, onlyHeld:true, focus:null, blind:false, salt:0};
 window.__state = S;
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -443,10 +452,27 @@ function commentsText() {
   return Object.keys(comments).filter(k => comments[k].trim()).map(k => {
     const [v, rid] = k.split('|'), c = reqById(rid), b = v === 'all' ? null : partById(v.slice(5));
     if (!c || (v !== 'all' && !b)) return '';
-    return (b ? 'Part "' + b.name + '"' : 'All the rules together') + ' / ' + c.title + ': ' + comments[k].trim();
+    return cmpName(v) + ' / ' + c.title + ': ' + comments[k].trim();
   }).filter(Boolean).join('\n');
 }
 const nComments = () => Object.values(comments).filter(v => v.trim()).length;
+
+// ---- which draft the reader prefers: 'with', 'without' (the left setup of the comparison) or 'same', per comparison and run ----
+const PK = 'writing-rules-picks:' + M.title;
+let picks = (() => { try { return JSON.parse(localStorage.getItem(PK) || '{}'); } catch (e) { return {}; } })();
+const saveP = () => { try { localStorage.setItem(PK, JSON.stringify(picks)); return true; } catch (e) { return false; } };
+const pkey = () => ckey() + '|' + S.run;
+const cmpName = v => v === 'all' ? 'All the rules together' : 'Part "' + (partById(v.slice(5)) || {name: v}).name + '"';
+const pickWord = (v, p) => p === 'same' ? 'no preference' : p === 'with' ? (v === 'all' ? 'prefers with the rules' : 'prefers with all the rules') : v === 'all' ? 'prefers without the rules' : v === 'part:chance' ? 'prefers the second set of runs' : 'prefers without the part';
+function picksText() {
+  return Object.keys(picks).map(k => { const [v, rid, run] = k.split('|'), c = reqById(rid); return c ? cmpName(v) + ' / ' + c.title + ' / run ' + (+run + 1) + ': ' + pickWord(v, picks[k]) : ''; }).filter(Boolean).join('\n');
+}
+// blind grading: with the sides shuffled, is this comparison shown the other way round? Fixed until the next shuffle.
+function swapped() {
+  if (!S.blind) return false;
+  let h = 2166136261; for (const ch of S.salt + '|' + pkey()) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return ((h >>> 13) & 1) === 1;
+}
 
 // ---- drawing ----
 const heldLine = cmp => { const h = heldN(cmp); return h ? plural(h, 'change') + ' in every run' : 'No change in every run'; };
@@ -460,18 +486,19 @@ function draw() {
   document.title = M.title;
   $('h1').textContent = M.title; $('mock').textContent = M.mock || ''; $('how').textContent = M.how || '';
   $('tab1').classList.toggle('on', S.view === 1); $('tab2').classList.toggle('on', S.view === 2);
-  $('howbtn').classList.toggle('on', S.how); $('keysbtn').classList.toggle('on', S.keys);
+  $('howbtn').classList.toggle('on', S.how);
+  $('blindbtn').classList.toggle('blind', S.blind); $('blindbtn').setAttribute('aria-pressed', S.blind); $('blindlbl').textContent = S.blind ? 'Grading blind' : 'Grade blind';
   options($('kind'), 'Any writing', [...new Set(R.map(c => c.kind))], S.kind);
   options($('ck'), 'Any change', [...new Set(R.flatMap(c => [c.all, ...Object.values(c.parts || {})].flatMap(x => x.changes.map(d => d.kind))))], S.ck);
   const top = $('list').scrollTop, lkey = S.view + '|' + S.part + '|' + S.kind + '|' + S.ck;
   S.view === 1 ? drawList1() : drawList2();
   if (draw.lkey === lkey) $('list').scrollTop = top; draw.lkey = lkey;
   const sel = document.querySelector('#list .item.sel'); if (sel) sel.scrollIntoView({block: 'nearest'});
-  $('hint2').innerHTML = S.view === 2 ? '<kbd>⇧</kbd> <kbd>↑</kbd> <kbd>↓</kbd> next part' : '';
-  drawDetail(); drawSheet(); drawKeys();
+  drawDetail(); drawSheet();
 }
+const picked = c => { const pre = (S.view === 1 ? 'all' : 'part:' + S.part) + '|' + c.id + '|'; return Object.keys(picks).some(k => k.startsWith(pre)); };
 const item = (c, cmp) => '<button class="item' + (c.id === S.req ? ' sel' : '') + (heldN(cmp) ? '' : ' dim') + '" data-req="' + c.id + '"><span class="t">' + esc(c.title) +
-  '</span><span class="m"><span class="k">' + esc(c.kind) + (heldN(cmp) ? '' : ' · no change in every run') + '</span><span class="meter"><i style="width:' + cmp.size * 10 + '%"></i></span><span class="n" title="size of the change, 0 to 10">' + cmp.size + '</span></span></button>';
+  '</span><span class="m">' + (picked(c) ? '<span class="ck" title="You marked a preference here">✓</span>' : '') + '<span class="k">' + esc(c.kind) + (heldN(cmp) ? '' : ' · no change in every run') + '</span><span class="meter"><i style="width:' + cmp.size * 10 + '%"></i></span><span class="n" title="size of the change, 0 to 10">' + cmp.size + '</span></span></button>';
 function drawList1() {
   const l = list1();
   if (!l.find(c => c.id === S.req)) S.req = l.length ? l[0].id : null;
@@ -495,36 +522,49 @@ function drawDetail() {
   if (!c || (S.view === 2 && !pid)) { D.innerHTML = '<div class="empty">Nothing to show. Clear a filter.</div>'; return; }
   const cmp = cmpOf(c, pid), b = pid ? partById(pid) : null, n = nRuns(c, pid), base = pid === 'chance';
   S.run = Math.max(0, Math.min(S.run, n - 1));
+  if (S.blind) { S.src = 'without'; S.pinned = false; S.focus = null; }
   if (!c.original && S.src === 'orig') S.src = 'without';
   if (c.with.length < 2 && S.src === 'chance') S.src = 'without';
   const r = S.run, r2 = (r + 1) % c.with.length, L = leftRuns(c, pid), chs = shownCh(cmp);
   chs.forEach((d, k) => d.no = k + 1);
   if (!chs.find(d => d.i === S.focus)) S.focus = null;
   const l = S.view === 1 ? list1() : list2(pid), pos = l.findIndex(x => x.id === c.id) + 1;
-  const keep = D.dataset.key === [S.view, S.req, pid, r, S.src].join('|') ? [...D.querySelectorAll('.body')].map(x => x.scrollTop) : null;
-  D.dataset.key = [S.view, S.req, pid, r, S.src].join('|');
+  const dkey = [S.view, S.req, pid, r, S.src, S.blind, S.salt].join('|');
+  const keep = D.dataset.key === dkey ? [...D.querySelectorAll('.body')].map(x => x.scrollTop) : null;
+  D.dataset.key = dkey;
   const hN = heldN(cmp);
   const head = '<div class="dtop"><h2>' + esc(c.title) + '<small>' + esc(c.kind) + (c.date ? ' · ' + shortDate(c.date) : '') + ' · ' + pos + ' of ' + l.length + (b ? ' for “' + esc(b.name) + '”' : '') + '</small></h2>' +
-    '<button class="pill' + (S.pinned ? ' on' : '') + (hN ? '' : ' none') + '" id="whatbtn" aria-expanded="' + S.pinned + '"><span class="sw"></span>What changed: ' + heldLine(cmp).toLowerCase() + ' <kbd>W</kbd></button></div>';
-  const ask = '<div class="askrow"><button class="ask" id="ask" aria-expanded="' + S.open + '"><span class="lbl">You asked</span><span class="q">' + esc(c.request.replace(/\s+/g, ' ').trim().slice(0, 400)) + '</span><kbd>E</kbd></button>' +
+    (S.blind ? '<span class="blindnote">Sides shuffled, labels and highlights hidden</span>'
+             : '<button class="pill' + (S.pinned ? ' on' : '') + (hN ? '' : ' none') + '" id="whatbtn" aria-expanded="' + S.pinned + '"><span class="sw"></span>What changed: ' + heldLine(cmp).toLowerCase() + ' <kbd>W</kbd></button>') + '</div>';
+  const ask = '<div class="askrow"><button class="ask" id="ask" aria-expanded="' + S.open + '"><span class="lbl">You asked</span><span class="q">' + esc(c.request.replace(/\s+/g, ' ').trim().slice(0, 400)) + '</span></button>' +
     (n > 1 ? '<span class="runs"><kbd>←</kbd>' + Array.from({length: n}, (_, k) => '<button class="rb' + (k === r ? ' on' : '') + '" data-run="' + k + '" aria-label="run ' + (k + 1) + '">' + (k + 1) + '</button>').join('') + '<kbd>→</kbd> run</span>' : '') +
     (S.open ? '<div class="pop" id="askpop"><h5>What you asked</h5><div class="full">' + esc(c.request) + '</div>' + (c.before ? '<h5>The session before it</h5><div class="full">' + esc(c.before) + '</div>' : '') +
       (b ? '<h5>' + (base ? 'The chance check' : 'The part of the rules taken out') + '</h5><div class="full">' + esc(b.text || '') + '</div>' : '') + '</div>' : '') + '</div>';
-  const q = (side, run) => chs.map(d => ({q: (d[side] || [])[run] || '', i: d.i, no: d.no}));
-  const srcBtn = (id, label, key, tip) => '<button data-src="' + id + '" class="' + (S.src === id ? 'on' : '') + '" title="' + esc(tip) + '">' + label + (key ? ' <kbd>' + key + '</kbd>' : '') + '</button>';
+  const q = (side, run) => S.blind ? [] : chs.map(d => ({q: (d[side] || [])[run] || '', i: d.i, no: d.no}));
+  const srcBtn = (id, label, tip) => '<button data-src="' + id + '" class="' + (S.src === id ? 'on' : '') + '" title="' + esc(tip) + '">' + label + '</button>';
   // the left column's switch is its title: the setup compared, the reply at the time, or a second run with the rules
-  const seg = '<span class="seg">' + srcBtn('without', b ? (base ? 'Run again' : 'Without the part') : 'Without the rules', '', 'The drafts this comparison is about') +
-    (c.original ? srcBtn('orig', 'At the time', 'O', 'What Claude wrote in the real session') : '') + (c.with.length > 1 ? srcBtn('chance', 'Chance', 'R', 'Another run with the rules: the two columns differ only by chance') : '') + '</span>';
-  const leftText = S.src === 'chance' ? c.with[r] : S.src === 'orig' ? c.original : L[r], rightText = S.src === 'chance' ? c.with[r2] : c.with[r];
-  const lsub = S.src === 'chance' ? 'with the rules, run ' + (r + 1) : S.src === 'orig' ? 'the reply in the real session' : b ? (base ? 'all the rules, nothing taken out' : 'every other rule kept') : '';
-  const rt = [b ? 'With all the rules' : 'With the rules', S.src === 'chance' ? 'run ' + (r2 + 1) + ' · same setup, only chance differs' : ''];
-  const col = (id, title, sub, text, quotes) => '<div class="col"><div class="ch">' + title + '<span class="sub"><b>' + nwords(text) + ' words</b>' + (sub ? ' · ' + esc(sub) : '') + '</span></div>' +
-    '<div class="body' + (S.focus !== null ? ' focus' : '') + '" id="col' + id + '">' + render(text || '', quotes) + '</div></div>';
-  const cols = '<div class="cols">' + col('L', seg, lsub, leftText, S.src === 'without' ? q('without', r) : S.src === 'chance' ? q('with', r) : []) + col('R', '<h3>' + rt[0] + '</h3>', rt[1], rightText, q('with', S.src === 'chance' ? r2 : r)) + '</div>';
-  const v = comments[ckey()] || '';
-  D.innerHTML = head + ask + '<div class="work">' + cols + (S.pinned ? what(c, cmp, b, chs, leftText, rightText) : '') + '</div>' +
-    '<div class="cm"><kbd>C</kbd><textarea id="cmt" placeholder="Comment on this comparison" aria-label="Comment on this comparison">' + esc(v) + '</textarea><span class="st" id="cmst">' + (v.trim() ? 'Saved' : '') + '</span>' +
-    '<button class="ghost" id="copy"><span>Copy comments (<span id="ncm">' + nComments() + '</span>)</span></button><textarea id="copyout" readonly aria-label="All comments"></textarea></div>';
+  const seg = '<span class="seg">' + srcBtn('without', b ? (base ? 'Run again' : 'Without the part') : 'Without the rules', 'The drafts this comparison is about') +
+    (c.original ? srcBtn('orig', 'At the time', 'What Claude wrote in the real session') : '') + (c.with.length > 1 ? srcBtn('chance', 'Chance', 'Another run with the rules: the two columns differ only by chance') : '') + '</span>';
+  // the two columns. Each knows which setup it shows, so a pick made by position is stored by setup.
+  const sw = swapped(), gradable = S.src === 'without', pick = picks[pkey()];
+  let cl = {setup: S.src === 'without' ? 'without' : null, text: S.src === 'chance' ? c.with[r] : S.src === 'orig' ? c.original : L[r], quotes: S.src === 'without' ? q('without', r) : S.src === 'chance' ? q('with', r) : [],
+            title: seg, sub: S.src === 'chance' ? 'with the rules, run ' + (r + 1) : S.src === 'orig' ? 'the reply in the real session' : b ? (base ? 'all the rules, nothing taken out' : 'every other rule kept') : ''};
+  let cr = {setup: S.src === 'without' ? 'with' : null, text: S.src === 'chance' ? c.with[r2] : c.with[r], quotes: q('with', S.src === 'chance' ? r2 : r),
+            title: '<h3>' + (b ? 'With all the rules' : 'With the rules') + '</h3>', sub: S.src === 'chance' ? 'run ' + (r2 + 1) + ' · same setup, only chance differs' : ''};
+  if (sw) [cl, cr] = [cr, cl];
+  if (S.blind) { cl.title = '<h3>Left</h3>'; cr.title = '<h3>Right</h3>'; cl.sub = cr.sub = ''; }
+  S.sides = [cl.setup, cr.setup];
+  const col = (id, x) => { const mine = gradable && pick && pick === x.setup;
+    return '<div class="col' + (mine ? ' pref' : '') + '" data-setup="' + (S.blind ? '' : x.setup || '') + '"><div class="ch"><span class="top">' + x.title + (mine ? '<span class="tag">✓ You prefer this one</span>' : '') + '</span><span class="sub"><b>' + nwords(x.text) + ' words</b>' + (x.sub ? ' · ' + esc(x.sub) : '') + '</span></div>' +
+      '<div class="body' + (S.focus !== null ? ' focus' : '') + '" id="col' + id + '">' + render(x.text || '', x.quotes) + '</div></div>'; };
+  const cols = '<div class="cols">' + col('L', cl) + col('R', cr) + '</div>';
+  const pb = (pos, label, key) => { const val = pos === 'S' ? 'same' : pos === 'L' ? cl.setup : cr.setup;
+    return '<button data-pick="' + pos + '" class="' + (gradable && pick === val ? 'on' : '') + '"' + (gradable ? '' : ' disabled') + '>' + label + ' <kbd>' + key + '</kbd></button>'; };
+  const prefer = '<span class="prefer' + (gradable ? '' : ' off') + '" title="' + (gradable ? 'Press the same key again to clear' : 'Switch the left column back to mark a preference') + '">Prefer <span class="seg" role="group" aria-label="Which draft do you prefer?">' + pb('L', 'Left', 'A') + pb('S', 'Same', 'S') + pb('R', 'Right', 'D') + '</span></span>';
+  const v = comments[ckey()] || '', nn = nComments() + Object.keys(picks).length;
+  D.innerHTML = head + ask + '<div class="work">' + cols + (S.pinned ? what(c, cmp, b, chs, cl.text, cr.text) : '') + '</div>' +
+    '<div class="cm">' + prefer + '<kbd>C</kbd><textarea id="cmt" placeholder="Comment on this comparison" aria-label="Comment on this comparison">' + esc(v) + '</textarea><span class="st" id="cmst">' + (v.trim() ? 'Saved' : '') + '</span>' +
+    '<button class="ghost" id="copy"><span>Copy picks and comments (<span id="ncm">' + nn + '</span>)</span></button><textarea id="copyout" readonly aria-label="All picks and comments"></textarea></div>';
   if (keep) [...D.querySelectorAll('.body')].forEach((x, k) => x.scrollTop = keep[k] || 0);
   if (S.focus !== null) mark(S.focus);
 }
@@ -536,7 +576,7 @@ function what(c, cmp, b, chs, leftText, rightText) {
     chs.map(d => '<button class="row' + (d.held ? '' : ' weak') + (S.focus === d.i ? ' hot' : '') + '" data-ch="' + d.i + '"><span class="no">' + d.no + '</span><span class="w">' + inl(sides(d.what, b && b.id)) + '</span>' +
       '<span class="sub">' + dots(d.runs_without, of(d)[0], true) + dots(d.runs_with, of(d)[1]) + '<span>' + esc(d.kind) + '</span></span></button>').join('');
   else h += '<p class="fine">No change passes the filters.</p>';
-  h += '<label class="check"><input type="checkbox" id="held"' + (S.onlyHeld ? ' checked' : '') + '> Only changes that showed in every run <kbd>D</kbd></label>';
+  h += '<label class="check"><input type="checkbox" id="held"' + (S.onlyHeld ? ' checked' : '') + '> Only changes that showed in every run</label>';
   if (!b && c.parts && Object.keys(c.parts).length) {
     const ps = Object.keys(c.parts).filter(partById).sort((x, y) => c.parts[y].size - c.parts[x].size), tick = c.parts.chance ? c.parts.chance.size : null;
     h += '<h5>Which part does it?</h5>' + ps.map(p => '<button class="prow2' + (p === 'chance' ? ' base' : '') + '" data-gopart="' + p + '" title="Open this part"><span>' + esc(partById(p).name) + '</span>' + bar(c.parts[p].size, null) + '<span class="v">' + c.parts[p].size + '</span></button>').join('') +
@@ -546,6 +586,15 @@ function what(c, cmp, b, chs, leftText, rightText) {
   h += '<p class="fine">Descriptions and sizes are an AI judge\'s reading of all the runs. Counting every word, ' + Math.round(share(leftText, rightText) * 100) + '% differ between the two drafts shown' +
     (c.with.length > 1 && S.src !== 'chance' ? '; two runs with nothing changed differ by ' + Math.round(share(c.with[0], c.with[1]) * 100) + '%.' : '.') + '</p></aside>';
   return h;
+}
+function picksHtml() {
+  const ks = Object.keys(picks).filter(k => reqById(k.split('|')[1]));
+  if (!ks.length) return '';
+  if (S.blind) return '<h5>Your picks</h5><p class="fine">' + plural(ks.length, 'pick') + ' so far. Hidden while you grade blind.</p>';
+  const by = {}; for (const k of ks) { const v = k.split('|')[0]; (by[v] = by[v] || {with: 0, without: 0, same: 0})[picks[k]]++; }
+  return '<h5>Your picks</h5><div class="stats" style="grid-template-columns:minmax(0,1fr) auto auto auto"><div class="hd"></div><div class="hd num">without</div><div class="hd num">with the rules</div><div class="hd num">same</div>' +
+    Object.keys(by).sort().map(v => '<div>' + esc(cmpName(v)) + '</div><div class="num">' + by[v].without + '</div><div class="num">' + by[v].with + '</div><div class="num">' + by[v].same + '</div>').join('') +
+    '</div><p class="fine">How many times you preferred each side. “Without” is without the rules, or for a part, without that part.</p>';
 }
 function drawSheet() {
   $('scrim').classList.toggle('open', S.how); $('sheet').classList.toggle('open', S.how);
@@ -557,19 +606,10 @@ function drawSheet() {
       M.stats.map(s => '<div>' + esc(s.label) + '</div><div class="num">' + esc(s.without) + '</div><div class="num">' + esc(s.with) + '</div>').join('') + '</div>' + (M.statsNote ? '<p class="fine">' + esc(M.statsNote) + '</p>' : '') : '') +
     (prows.length ? '<h5>Which part does the work</h5>' + prows.map(x => '<div class="prow2' + (x.b.id === 'chance' ? ' base' : '') + '"><span>' + esc(x.b.name) + '</span>' + bar(x.mean, x.b.id === 'chance' ? null : tick) + '<span class="v">' + x.mean.toFixed(1) + '</span></div>').join('') +
       '<p class="fine">Mean judged size of the change, 0 to 10, when the part is taken out alone' + (tick != null ? '. The tick is the chance check: what the judge finds when nothing is taken out.' : '.') + '</p>' : '') +
-    '<h5>By kind of writing, all the rules together</h5>' + kinds.map(x => '<div class="prow2"><span>' + esc(x.k) + ' <span class="muted">(' + x.n + ')</span></span>' + bar(x.mean, null) + '<span class="v">' + x.mean.toFixed(1) + '</span></div>').join('') +
+    picksHtml() + '<h5>By kind of writing, all the rules together</h5>' + kinds.map(x => '<div class="prow2"><span>' + esc(x.k) + ' <span class="muted">(' + x.n + ')</span></span>' + bar(x.mean, null) + '<span class="v">' + x.mean.toFixed(1) + '</span></div>').join('') +
     '<h5>How this was made</h5><ul>' + (M.notes || []).map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>' +
     '<h5>The parts of the rules</h5>' + P.map(b => '<details><summary>' + esc(b.name) + (b.where ? '<span>' + esc(b.where) + '</span>' : '') + '</summary><div class="parttext">' + esc(b.text || '') + '</div></details>').join('');
 }
-function drawKeys() {
-  $('keys').classList.toggle('open', S.keys);
-  if (!S.keys) return;
-  const k = (keys, what) => '<div><span>' + what + '</span><span>' + keys.map(x => '<kbd>' + x + '</kbd>').join(' ') + '</span></div>';
-  $('keys').innerHTML = k(['↑', '↓'], 'Next or previous request') + k(['←', '→'], 'Another run of the same request') + k(['1', '2'], 'All the rules, or one part at a time') + k(['⇧', '↑', '↓'], 'Next or previous part') +
-    k(['W'], 'What changed') + k(['D'], 'Also show changes not in every run') + k(['E'], 'The full request') + k(['O'], 'Left column: what Claude wrote at the time') + k(['R'], 'Left column: chance check') +
-    k(['F'], 'Next kind of writing') + k(['C'], 'Comment') + k(['⌘', '↵'], 'Save the comment') + k(['H'], 'Summary and method') + k(['Esc'], 'Close');
-}
-
 // ---- actions ----
 function setView(v) { S.view = v; S.run = 0; S.src = 'without'; S.focus = null; draw(); }
 function pick(req, part) { if (part !== undefined) S.part = part; S.req = req; S.run = 0; S.src = 'without'; S.focus = null; draw(); }
@@ -577,15 +617,20 @@ function move(d) {
   if (S.view === 1) { const l = list1(), n = l[l.findIndex(c => c.id === S.req) + d]; if (n) pick(n.id); return; }
   const l = list2(S.part), n = l[l.findIndex(c => c.id === S.req) + d]; if (n) pick(n.id);
 }
-function movePart(d) { const rows = partRows(), nx = rows[rows.findIndex(x => x.b.id === S.part) + d]; if (nx) pick(null, nx.b.id); }
-function cycleKind() { const ks = [null, ...new Set(R.map(c => c.kind))]; S.kind = ks[(ks.indexOf(S.kind) + 1) % ks.length]; draw(); }
-function setSrc(s) { S.src = S.src === s ? 'without' : s; S.focus = null; draw(); }
+// A, S, D or a click: the pick is stored as the setup on that side, so it stays right when the sides are shuffled
+function setPick(pos) {
+  if (S.src !== 'without' || !S.sides) return;
+  const val = pos === 'S' ? 'same' : pos === 'L' ? S.sides[0] : S.sides[1], k = pkey();
+  if (picks[k] === val) delete picks[k]; else picks[k] = val;
+  saveP(); draw();
+}
+function setBlind(on) { S.blind = on; if (on) { S.salt = Math.floor(Math.random() * 1e9); S.pinned = false; S.focus = null; S.src = 'without'; } draw(); }
 function saveComment() {
   const t = $('cmt'); if (!t) return;
   if (t.value.trim()) comments[ckey()] = t.value; else delete comments[ckey()];
   const ok = saveC();
   $('cmst').textContent = t.value.trim() ? (ok ? 'Saved' : 'Not saved') : '';
-  $('ncm').textContent = nComments();
+  $('ncm').textContent = nComments() + Object.keys(picks).length;
 }
 // light up every passage of one change, and its row
 function mark(i) {
@@ -602,26 +647,27 @@ function focusChange(i) {
   const row = document.querySelector('.row[data-ch="' + i + '"]'); if (row) row.scrollIntoView({block: 'nearest'});
 }
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-view],[data-req],[data-part],[data-gopart],[data-run],[data-src],[data-ch],.d,#ask,#copy,#howbtn,#keysbtn,#whatbtn,#closehow,#scrim');
-  if (!t) { if (!e.target.closest('.pop,.sheet') && (S.open || S.keys)) { S.open = S.keys = false; draw(); } return; }
+  const t = e.target.closest('[data-view],[data-req],[data-part],[data-gopart],[data-run],[data-src],[data-ch],[data-pick],.d,#ask,#copy,#howbtn,#blindbtn,#whatbtn,#closehow,#scrim');
+  if (!t) { if (!e.target.closest('.pop,.sheet') && S.open) { S.open = false; draw(); } return; }
   if (t.dataset.view) setView(+t.dataset.view);
   else if (t.dataset.req) pick(t.dataset.req);
   else if (t.dataset.part) pick(null, t.dataset.part);
   else if (t.dataset.gopart) { S.view = 2; pick(S.req, t.dataset.gopart); }
   else if (t.dataset.run) { S.run = +t.dataset.run; draw(); }
   else if (t.dataset.src) { S.src = t.dataset.src; S.focus = null; draw(); }
+  else if (t.dataset.pick) setPick(t.dataset.pick);
+  else if (t.id === 'blindbtn') setBlind(!S.blind);
   else if (t.dataset.ch) focusChange(+t.dataset.ch);
   else if (t.classList.contains('d')) focusChange(+t.dataset.i);
   else if (t.id === 'ask') { S.open = !S.open; draw(); }
-  else if (t.id === 'howbtn') { S.how = !S.how; S.keys = false; draw(); }
+  else if (t.id === 'howbtn') { S.how = !S.how; draw(); }
   else if (t.id === 'closehow' || t.id === 'scrim') { S.how = false; draw(); }
-  else if (t.id === 'keysbtn') { S.keys = !S.keys; draw(); }
   else if (t.id === 'whatbtn') { S.pinned = !S.pinned; if (!S.pinned) S.focus = null; draw(); }
   else if (t.id === 'copy') {
     // Shows the comments in a box, selected, and copies them. If the browser refuses, the selection is ready for Cmd+C.
     const o = $('copyout');
     if (o.style.display === 'block') { o.style.display = 'none'; $('cmst').textContent = ''; return; }
-    o.style.display = 'block'; o.value = commentsText() || 'No comments yet.'; o.focus(); o.select();
+    o.style.display = 'block'; o.value = S.blind ? 'Stop grading blind (B) first: the list says which side each pick was.' : [picksText(), commentsText()].filter(Boolean).join('\n\n') || 'No picks or comments yet.'; o.focus(); o.select();
     let done = false; try { done = document.execCommand('copy'); } catch (err) {}
     $('cmst').textContent = done ? 'Copied' : 'Press ⌘C';
   }
@@ -638,7 +684,7 @@ document.addEventListener('mouseover', e => {
   tip.style.display = 'none';
   const i = row ? +row.dataset.ch : d ? +d.dataset.i : S.focus;
   mark(i);
-  if (d && !S.pinned) {
+  if (d && !S.pinned && !S.blind) {
     const c = reqById(S.req), x = cmpOf(c, S.view === 2 ? S.part : null).changes[i], r = d.getBoundingClientRect();
     tip.innerHTML = inl(x.what) + '<small>' + esc(x.kind) + ' · click to see every change</small>';
     tip.style.display = 'block';
@@ -656,22 +702,17 @@ document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.target.tagName === 'SELECT' && e.key !== 'Escape') return;
   const k = e.key.toLowerCase();
-  if (k === 'arrowdown') e.shiftKey && S.view === 2 ? movePart(1) : move(1);
-  else if (k === 'arrowup') e.shiftKey && S.view === 2 ? movePart(-1) : move(-1);
+  if (k === 'arrowdown') move(1);
+  else if (k === 'arrowup') move(-1);
   else if (k === 'arrowright') { S.run++; draw(); }
   else if (k === 'arrowleft') { S.run--; draw(); }
-  else if (k === '1') setView(1);
-  else if (k === '2') setView(2);
-  else if (k === 'w') { S.pinned = !S.pinned; if (!S.pinned) S.focus = null; draw(); }
-  else if (k === 'e') { S.open = !S.open; draw(); }
-  else if (k === 'r') setSrc('chance');
-  else if (k === 'o') setSrc('orig');
-  else if (k === 'f') cycleKind();
-  else if (k === 'd') { S.onlyHeld = !S.onlyHeld; draw(); }
-  else if (k === 'h') { S.how = !S.how; S.keys = false; draw(); }
-  else if (k === '?') { S.keys = !S.keys; draw(); }
+  else if (k === 'a') setPick('L');
+  else if (k === 's') setPick('S');
+  else if (k === 'd') setPick('R');
+  else if (k === 'b') setBlind(!S.blind);
+  else if (k === 'w') { if (S.blind) return; S.pinned = !S.pinned; if (!S.pinned) S.focus = null; draw(); }
   else if (k === 'c') { const t = $('cmt'); if (t) t.focus(); }
-  else if (k === 'escape') { if (S.how || S.keys || S.open) S.how = S.keys = S.open = false; else if (S.focus !== null) S.focus = null; else S.pinned = false; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); draw(); }
+  else if (k === 'escape') { if (S.how || S.open) S.how = S.open = false; else if (S.focus !== null) S.focus = null; else S.pinned = false; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); draw(); }
   else return;
   e.preventDefault();
 });
